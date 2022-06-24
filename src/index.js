@@ -1,15 +1,13 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import multer from 'multer';
 import 'dotenv/config';
 
-import { registerValidation } from './validations/register.js';
-import { loginValidation } from './validations/login.js';
-import { postCreateValidation } from './validations/post.js';
+import { registerValidation, loginValidation, postCreateValidation } from './validations/index.js';
 
-import * as UserController from './controllers/UserController.js';
-import * as PostController from './controllers/PostController.js';
+import { UserController, PostController } from './controllers/index.js';
 
-import { checkAuth } from './utils/checkAuth.js';
+import { checkAuth, checkJwtSecretKey, handleValidationErrors } from './utils/index.js';
 
 const PORT = 4444;
 const DB_CONNECT_STRING = `mongodb+srv://${process.env.DB_LOGIN}:${process.env.DB_PASSWORD}@cluster0.gzzp4.mongodb.net/blog?retryWrites=true&w=majority`;
@@ -21,18 +19,41 @@ mongoose
 
 const app = express();
 
-app.use(express.json());
+const storage = multer.diskStorage({
+  destination: (_, __, cb) => cb(null, 'uploads'),
+  filename: (_, file, cb) => cb(null, file.originalname),
+});
 
-app.post('/auth/login', loginValidation, UserController.login);
-app.post('/register', registerValidation, UserController.register);
+const upload = multer({ storage });
+
+app.use(express.json());
+app.use('/uploads', express.static('uploads'));
+
+app.post('/upload', checkAuth, upload.single('image'), (req, res) => {
+  res.json({ url: `uploads/${req.file.originalname}` });
+});
+
+app.post('/auth/login', loginValidation, handleValidationErrors, UserController.login);
+app.post(
+  '/auth/register',
+  checkJwtSecretKey,
+  registerValidation,
+  handleValidationErrors,
+  UserController.register,
+);
 app.get('/auth/me', checkAuth, UserController.getMe);
 
-// TODO: доделать роуты
 app.get('/posts', PostController.getAll);
 app.get('/posts/:id', PostController.getOne);
 app.delete('/posts/:id', checkAuth, PostController.remove);
-// app.patch('/posts', PostController.update);
-app.post('/posts', checkAuth, postCreateValidation, PostController.create);
+app.patch(
+  '/posts/:id',
+  checkAuth,
+  postCreateValidation,
+  handleValidationErrors,
+  PostController.update,
+);
+app.post('/posts', checkAuth, postCreateValidation, handleValidationErrors, PostController.create);
 
 app.listen(PORT, err => {
   if (err) {
