@@ -1,5 +1,22 @@
 import { PostModel } from '../models/index.js';
 
+export const getLastTags = async (_, res) => {
+  try {
+    const posts = await PostModel.find().limit(5).exec();
+    const tags = posts
+      .map(({ tags }) => tags)
+      .flat()
+      .slice(0, 5);
+
+    res.json(tags);
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({
+      message: 'Не удалось найти теги',
+    });
+  }
+};
+
 export const getAll = async (_, res) => {
   try {
     const posts = await PostModel.find().populate('user').exec();
