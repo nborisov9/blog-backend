@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import multer from 'multer';
 import 'dotenv/config';
+import cors from 'cors';
 
 import { registerValidation, loginValidation, postCreateValidation } from './validations/index.js';
 
@@ -18,6 +19,7 @@ mongoose
   .catch(() => console.log('DB ERROR'));
 
 const app = express();
+app.use(cors());
 
 const storage = multer.diskStorage({
   destination: (_, __, cb) => cb(null, 'uploads'),
