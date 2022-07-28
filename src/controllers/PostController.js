@@ -3,10 +3,7 @@ import { PostModel } from '../models/index.js';
 export const getLastTags = async (_, res) => {
   try {
     const posts = await PostModel.find().limit(5).exec();
-    const tags = posts
-      .map(({ tags }) => tags)
-      .flat()
-      .slice(0, 5);
+    const tags = posts.flatMap(({ tags }) => tags).slice(0, 5);
 
     res.json(tags);
   } catch (err) {
